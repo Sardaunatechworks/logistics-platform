@@ -24,10 +24,11 @@ import type { UserRole } from '@/types/database';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
-  user: {
-    fullName: string;
-    email: string;
-    role: UserRole;
+  user?: {
+    fullName?: string;
+    name?: string;
+    email?: string;
+    role?: UserRole;
   };
 }
 
@@ -80,7 +81,13 @@ export function DashboardLayout({ children, user }: DashboardLayoutProps) {
     ],
   };
 
-  const navItems = navItemsByRole[user.role] || navItemsByRole.customer;
+  const currentRole = user?.role || 'customer';
+  const currentUser = {
+    fullName: user?.fullName || user?.name || 'Account User',
+    email: user?.email || '',
+    role: currentRole,
+  };
+  const navItems = navItemsByRole[currentRole] || navItemsByRole.customer;
 
   const roleLabels: Record<UserRole, string> = {
     customer: 'Customer',
@@ -115,10 +122,10 @@ export function DashboardLayout({ children, user }: DashboardLayoutProps) {
 
         {/* User Card */}
         <div className="p-4 mx-3 my-3 rounded-lg bg-slate-50 border border-slate-200/60">
-          <p className="text-sm font-semibold text-slate-900 truncate">{user.fullName}</p>
-          <p className="text-xs text-slate-500 truncate">{user.email}</p>
+          <p className="text-sm font-semibold text-slate-900 truncate">{currentUser.fullName}</p>
+          <p className="text-xs text-slate-500 truncate">{currentUser.email}</p>
           <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium bg-blue-100 text-blue-800">
-            {roleLabels[user.role]}
+            {roleLabels[currentUser.role]}
           </div>
         </div>
 
@@ -195,10 +202,10 @@ export function DashboardLayout({ children, user }: DashboardLayoutProps) {
               </div>
 
               <div className="p-4 bg-slate-50 m-3 rounded-lg border border-slate-200">
-                <p className="text-sm font-semibold text-slate-900">{user.fullName}</p>
-                <p className="text-xs text-slate-500">{user.email}</p>
+                <p className="text-sm font-semibold text-slate-900">{currentUser.fullName}</p>
+                <p className="text-xs text-slate-500">{currentUser.email}</p>
                 <span className="mt-2 inline-block px-2 py-0.5 rounded text-[11px] font-medium bg-blue-100 text-blue-800">
-                  {roleLabels[user.role]}
+                  {roleLabels[currentUser.role]}
                 </span>
               </div>
 

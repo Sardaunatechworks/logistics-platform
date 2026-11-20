@@ -87,7 +87,7 @@ export const createBusinessSchema = z.object({
 
 export const riderRegistrationSchema = z.object({
   vehicle_type: z.enum(['Motorcycle', 'Bicycle', 'Car', 'Van', 'Truck'], {
-    required_error: 'Vehicle type is required',
+    message: 'Vehicle type is required',
   }),
   vehicle_registration: z.string().min(1, 'Vehicle registration is required').max(50),
   license_number: z.string().optional(),
@@ -142,17 +142,17 @@ export const packageSchema = z.object({
   package_description: z.string().min(3, 'Package description is required').max(500),
   package_category: z.string().min(1, 'Package category is required'),
   package_size: z.enum(['small', 'medium', 'large', 'extra_large'], {
-    required_error: 'Package size is required',
+    message: 'Package size is required',
   }),
   delivery_type: z.enum(['standard', 'express', 'intercity'], {
-    required_error: 'Delivery type is required',
+    message: 'Delivery type is required',
   }),
   customer_instructions: z.string().max(1000).optional(),
 });
 
 export const paymentSelectionSchema = z.object({
   payment_method: z.enum(['online', 'cash'], {
-    required_error: 'Payment method is required',
+    message: 'Payment method is required',
   }),
 });
 

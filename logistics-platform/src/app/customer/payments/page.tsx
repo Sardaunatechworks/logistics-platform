@@ -40,9 +40,10 @@ export default function CustomerPaymentsPage() {
     if (!search) return true;
     const s = search.toLowerCase();
     return (
-      p.paystack_reference?.toLowerCase().includes(s) ||
+      p.payment_reference?.toLowerCase().includes(s) ||
+      p.provider_reference?.toLowerCase().includes(s) ||
       p.tracking_number?.toLowerCase().includes(s) ||
-      p.payment_method?.toLowerCase().includes(s)
+      p.method?.toLowerCase().includes(s)
     );
   });
 
@@ -53,7 +54,7 @@ export default function CustomerPaymentsPage() {
   return (
     <DashboardLayout
       user={{
-        name: 'Account',
+        fullName: 'Account',
         role: 'customer',
       }}
     >
@@ -96,7 +97,7 @@ export default function CustomerPaymentsPage() {
           </div>
         ) : filteredPayments.length === 0 ? (
           <EmptyState
-            icon={CreditCard}
+            icon={<CreditCard className="w-8 h-8 text-slate-400" />}
             title="No Payment Records"
             description="Payments made for your deliveries will appear here with downloadable receipts."
           />
@@ -130,7 +131,7 @@ export default function CustomerPaymentsPage() {
                         </Link>
                       </td>
                       <td className="py-3 px-4 capitalize text-slate-700">
-                        {p.payment_method === 'cash' ? 'Cash on Delivery' : 'Online (Paystack)'}
+                        {p.method === 'cash' ? 'Cash on Delivery' : 'Online (Paystack)'}
                       </td>
                       <td className="py-3 px-4 font-semibold text-slate-900">
                         {formatNaira(p.amount_kobo)}
@@ -139,7 +140,7 @@ export default function CustomerPaymentsPage() {
                         <PaymentStatusBadge status={p.status} />
                       </td>
                       <td className="py-3 px-4 font-mono text-xs text-slate-400">
-                        {p.paystack_reference || 'COD-SETTLED'}
+                        {p.provider_reference || p.payment_reference || 'COD-SETTLED'}
                       </td>
                     </tr>
                   ))}

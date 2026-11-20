@@ -69,7 +69,7 @@ export default function CustomerProfilePage() {
   return (
     <DashboardLayout
       user={{
-        name: fullName || 'Account',
+        fullName: fullName || 'Account',
         role: 'customer',
       }}
     >

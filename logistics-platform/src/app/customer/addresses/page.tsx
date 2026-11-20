@@ -126,7 +126,7 @@ export default function CustomerAddressesPage() {
           </div>
         ) : addresses.length === 0 ? (
           <EmptyState
-            icon={Building}
+            icon={<Building className="w-8 h-8 text-slate-400" />}
             title="No Saved Addresses"
             description="Save your frequent locations to speed up booking deliveries."
             action={{
