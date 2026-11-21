@@ -303,21 +303,21 @@ export default function RiderDashboardPage() {
                   <KeyRound className="h-6 w-6" />
                 </div>
                 <h3 className="text-lg font-bold text-slate-900">
-                  Recipient OTP Proof of Delivery
+                  Recipient Proof of Delivery Code
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Ask recipient <strong>{otpModalJob.recipient_name}</strong> for their 6-digit confirmation code.
+                  Ask recipient <strong>{otpModalJob.recipient_name}</strong> for their 6-digit confirmation code or delivery reference code.
                 </p>
               </div>
 
               <div className="space-y-3">
                 <Input
                   type="text"
-                  maxLength={6}
-                  placeholder="000000"
+                  maxLength={20}
+                  placeholder="e.g. 582910 or DLV-4F8B2C"
                   value={enteredOtp}
-                  onChange={(e) => setEnteredOtp(e.target.value.replace(/\D/g, ''))}
-                  className="text-center text-2xl font-mono tracking-widest min-h-[52px]"
+                  onChange={(e) => setEnteredOtp(e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, ''))}
+                  className="text-center text-xl font-mono tracking-wider min-h-[52px]"
                   required
                 />
               </div>
@@ -335,11 +335,11 @@ export default function RiderDashboardPage() {
                 </Button>
                 <Button
                   className="flex-1 bg-emerald-700 hover:bg-emerald-800"
-                  disabled={enteredOtp.length !== 6 || isVerifyingOtp}
+                  disabled={enteredOtp.trim().length < 4 || isVerifyingOtp}
                   isLoading={isVerifyingOtp}
                   onClick={async () => {
                     setIsVerifyingOtp(true);
-                    await handleStatusUpdate(otpModalJob.id, 'delivered', enteredOtp);
+                    await handleStatusUpdate(otpModalJob.id, 'delivered', enteredOtp.trim());
                     setIsVerifyingOtp(false);
                   }}
                 >

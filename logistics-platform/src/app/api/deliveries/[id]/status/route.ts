@@ -22,11 +22,13 @@ export async function POST(
       return NextResponse.json({ error: 'target_status is required' }, { status: 400 });
     }
 
+    const cleanedOtp = otp ? String(otp).trim().toUpperCase() : undefined;
+
     const result = await progressDeliveryStatus({
       deliveryId,
       actorId: user.id,
       targetStatus: target_status as DeliveryStatus,
-      otp,
+      otp: cleanedOtp,
       notes,
     });
 

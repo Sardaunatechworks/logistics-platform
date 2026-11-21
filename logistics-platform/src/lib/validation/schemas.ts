@@ -204,7 +204,7 @@ export const updateDeliveryStatusSchema = z.object({
     'cancelled', 'returned',
   ]),
   notes: z.string().max(500).optional(),
-  otp: z.string().length(6).optional(), // Required for delivered status
+  otp: z.string().min(4).max(25).optional(), // Required for delivered status
 });
 
 // ============================================================================
@@ -241,8 +241,9 @@ export const verifyOtpSchema = z.object({
   delivery_id: z.string().uuid('Invalid delivery ID'),
   otp: z
     .string()
-    .length(6, 'OTP must be 6 digits')
-    .regex(/^[0-9]+$/, 'OTP must contain only digits'),
+    .min(4, 'Code must be at least 4 characters')
+    .max(25, 'Code cannot exceed 25 characters')
+    .transform((val) => val.trim().toUpperCase()),
 });
 
 // ============================================================================
