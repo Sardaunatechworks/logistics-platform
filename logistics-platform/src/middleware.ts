@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { canAccessRoute, getDashboardRoute } from '@/lib/permissions';
-import type { UserRole, AccountStatus } from '@/types/database';
+import type { UserRole } from '@/types/database';
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  // Let public assets and static files through
+  // Let public assets, API routes, and static pages through
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
@@ -68,16 +68,30 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // If authenticated user visits auth routes (login/register), redirect to their dashboard
+  // Resolve user role: check public.profiles first, fallback to user_metadata, then 'customer'
+  let userRole: UserRole = 'customer';
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (profile?.role) {
+      userRole = profile.role as UserRole;
+    } else if (user.user_metadata?.role) {
+      userRole = user.user_metadata.role as UserRole;
+    }
+  }
+
+  // If authenticated user visits auth routes (login/register), redirect to their appropriate dashboard
   if (user && isAuthRoute) {
-    const userRole = (user.user_metadata?.role as UserRole) || 'customer';
     const destination = getDashboardRoute(userRole);
     return NextResponse.redirect(new URL(destination, request.url));
   }
 
   // If authenticated user accesses protected area, verify role permissions
   if (user && isProtectedRoute) {
-    const userRole = (user.user_metadata?.role as UserRole) || 'customer';
     if (!canAccessRoute(userRole, pathname)) {
       const destination = getDashboardRoute(userRole);
       return NextResponse.redirect(new URL(destination, request.url));

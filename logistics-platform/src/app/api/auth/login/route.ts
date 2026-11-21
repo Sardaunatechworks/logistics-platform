@@ -31,25 +31,42 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = authData.user.id;
-    const adminSupabase = createAdminClient();
+    let userRole: UserRole | null = null;
+    let accountStatus: AccountStatus = 'active';
 
-    // 2. Fetch user profile
-    const { data: profile, error: profileError } = await adminSupabase
+    // 2. Fetch user profile - Try user's authenticated client first (RLS permits reading own profile)
+    const { data: userProfile } = await supabase
       .from('profiles')
       .select('role, account_status')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
 
-    if (profileError || !profile) {
-      // Fallback role
-      return NextResponse.json({
-        success: true,
-        redirectUrl: '/customer',
-      });
+    if (userProfile) {
+      userRole = userProfile.role as UserRole;
+      accountStatus = userProfile.account_status as AccountStatus;
+    } else {
+      // Fallback: Try admin client
+      try {
+        const adminSupabase = createAdminClient();
+        const { data: adminProfile } = await adminSupabase
+          .from('profiles')
+          .select('role, account_status')
+          .eq('id', userId)
+          .maybeSingle();
+        if (adminProfile) {
+          userRole = adminProfile.role as UserRole;
+          accountStatus = adminProfile.account_status as AccountStatus;
+        }
+      } catch (adminErr) {
+        console.warn('Admin client fallback note:', adminErr);
+      }
     }
 
+    // Fallback to user_metadata or default
+    const finalRole: UserRole = userRole || (authData.user.user_metadata?.role as UserRole) || 'customer';
+
     // 3. FR-AUTH-06: Suspended or disabled accounts must not access protected workflows
-    if (profile.account_status === ('suspended' as AccountStatus) || profile.account_status === ('disabled' as AccountStatus)) {
+    if (accountStatus === ('suspended' as AccountStatus) || accountStatus === ('disabled' as AccountStatus)) {
       await supabase.auth.signOut();
       return NextResponse.json(
         { error: 'Your account is suspended or disabled. Please contact operations support.' },
@@ -57,12 +74,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const role = profile.role as UserRole;
-    const redirectUrl = getDashboardRoute(role);
+    // Sync role to user_metadata if missing so future token checks have it
+    if (authData.user.user_metadata?.role !== finalRole) {
+      await supabase.auth.updateUser({
+        data: { role: finalRole },
+      });
+    }
+
+    const redirectUrl = getDashboardRoute(finalRole);
 
     return NextResponse.json({
       success: true,
-      role,
+      role: finalRole,
       redirectUrl,
     });
   } catch (err) {
@@ -73,4 +96,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
