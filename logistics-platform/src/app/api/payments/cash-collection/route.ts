@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { recordCashCollection } from '@/features/payments/paystack-service';
 import { isAdminRole } from '@/lib/permissions';
-import type { UserRole } from '@/types/database';
+import { getUserRole } from '@/lib/supabase/get-user-role';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    const userRole = (user.user_metadata?.role as UserRole) || 'customer';
+    const userRole = await getUserRole(supabase, user);
     if (!isAdminRole(userRole)) {
       return NextResponse.json({ error: 'Only authorized operations administrators can record cash collection' }, { status: 403 });
     }
@@ -41,4 +41,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Internal server error recording cash collection' }, { status: 500 });
   }
 }
-

@@ -1,17 +1,20 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Truck, CheckCircle2, AlertCircle, Clock, MapPin, UserCheck, Search } from 'lucide-react';
+import { Truck, CheckCircle2, AlertCircle, Clock, MapPin, UserCheck, Search, AlertTriangle } from 'lucide-react';
 import { Button, Card, DeliveryStatusBadge, EmptyState, Select, Input } from '@/components/ui';
 import { DashboardLayout } from '@/components/layout';
 import { formatNaira, formatDate } from '@/lib/utils';
 import type { Delivery } from '@/types/database';
 
 interface RiderOption {
-  id: string;
+  id: string; // user_id
+  rider_profile_id: string;
   name: string;
   phone: string;
   vehicle: string;
+  verification_status: string;
+  availability_status: string;
 }
 
 export default function DispatchQueuePage() {
@@ -23,6 +26,7 @@ export default function DispatchQueuePage() {
   const [assignNotes, setAssignNotes] = useState('');
   const [isAssigning, setIsAssigning] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [modalError, setModalError] = useState<string | null>(null);
 
   useEffect(() => {
     loadQueue();
@@ -55,11 +59,18 @@ export default function DispatchQueuePage() {
     }
   };
 
+  const handleOpenAssign = (del: Delivery) => {
+    setSelectedDelivery(del);
+    setSelectedRiderId('');
+    setAssignNotes('');
+    setModalError(null);
+  };
+
   const handleAssign = async () => {
     if (!selectedDelivery || !selectedRiderId) return;
 
     setIsAssigning(true);
-    setStatusMessage(null);
+    setModalError(null);
 
     try {
       const res = await fetch(`/api/deliveries/${selectedDelivery.id}/assign`, {
@@ -81,16 +92,18 @@ export default function DispatchQueuePage() {
       setSelectedDelivery(null);
       setSelectedRiderId('');
       setAssignNotes('');
+      setModalError(null);
       loadQueue();
     } catch (err: unknown) {
-      setStatusMessage({
-        type: 'error',
-        text: err instanceof Error ? err.message : 'Error completing assignment',
-      });
+      const errMsg = err instanceof Error ? err.message : 'Error completing assignment';
+      setModalError(errMsg);
     } finally {
       setIsAssigning(false);
     }
   };
+
+  const selectedRider = riders.find((r) => r.id === selectedRiderId);
+  const isSelectedRiderUnapproved = selectedRider && selectedRider.verification_status !== 'approved';
 
   return (
     <DashboardLayout
@@ -181,10 +194,7 @@ export default function DispatchQueuePage() {
                   <div className="flex items-center gap-3 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100">
                     <Button
                       size="sm"
-                      onClick={() => {
-                        setSelectedDelivery(del);
-                        setSelectedRiderId('');
-                      }}
+                      onClick={() => handleOpenAssign(del)}
                     >
                       <UserCheck className="mr-1.5 h-4 w-4" />
                       {del.delivery_status === 'assigned' ? 'Reassign Rider' : 'Assign Rider'}
@@ -206,11 +216,18 @@ export default function DispatchQueuePage() {
                 </h3>
                 <button
                   onClick={() => setSelectedDelivery(null)}
-                  className="text-slate-400 hover:text-slate-600 text-sm"
+                  className="text-slate-400 hover:text-slate-600 text-sm font-semibold p-1"
                 >
                   ✕
                 </button>
               </div>
+
+              {modalError && (
+                <div className="p-3.5 rounded-lg bg-red-50 border border-red-200 text-red-800 text-xs flex items-start gap-2.5">
+                  <AlertCircle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
+                  <span className="leading-relaxed">{modalError}</span>
+                </div>
+              )}
 
               <div className="p-3 bg-slate-50 rounded-lg text-xs space-y-1 text-slate-600">
                 <p>
@@ -223,20 +240,34 @@ export default function DispatchQueuePage() {
 
               <div className="space-y-3">
                 <Select
-                  label="Select approved rider"
+                  label="Select rider"
                   value={selectedRiderId}
-                  onChange={(e) => setSelectedRiderId(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedRiderId(e.target.value);
+                    setModalError(null);
+                  }}
                   options={
                     riders.length > 0
                       ? riders.map((r) => ({
-                          label: `${r.name} (${r.vehicle} - ${r.phone})`,
+                          label: `${r.name} (${r.vehicle}) — ${
+                            r.verification_status === 'approved' ? '✓ Verified' : '⏳ ' + r.verification_status.toUpperCase()
+                          }`,
                           value: r.id,
                         }))
                       : [{ label: 'No riders available in Dutse', value: '' }]
                   }
-                  placeholder="Choose an approved rider..."
+                  placeholder="Choose a rider..."
                   required
                 />
+
+                {isSelectedRiderUnapproved && (
+                  <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                    <span>
+                      This rider is currently <strong>{selectedRider.verification_status}</strong>. Only approved riders can receive dispatch orders. Go to the <strong>Rider Fleet</strong> tab to approve them first.
+                    </span>
+                  </div>
+                )}
 
                 <Input
                   label="Internal dispatch notes"
@@ -254,7 +285,7 @@ export default function DispatchQueuePage() {
                   size="sm"
                   onClick={handleAssign}
                   isLoading={isAssigning}
-                  disabled={!selectedRiderId}
+                  disabled={!selectedRiderId || Boolean(isSelectedRiderUnapproved)}
                 >
                   Confirm Assignment
                 </Button>

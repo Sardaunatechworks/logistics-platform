@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { assignRiderToDelivery } from '@/features/dispatch/dispatch-service';
 import { isAdminRole } from '@/lib/permissions';
-import type { UserRole } from '@/types/database';
+import { getUserRole } from '@/lib/supabase/get-user-role';
 
 export async function POST(
   request: NextRequest,
@@ -17,7 +17,7 @@ export async function POST(
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    const userRole = (user.user_metadata?.role as UserRole) || 'customer';
+    const userRole = await getUserRole(supabase, user);
     if (!isAdminRole(userRole)) {
       return NextResponse.json({ error: 'Unauthorized: Operations Admin privilege required' }, { status: 403 });
     }
@@ -45,4 +45,3 @@ export async function POST(
     return NextResponse.json({ error: 'Internal server error processing assignment' }, { status: 500 });
   }
 }
-

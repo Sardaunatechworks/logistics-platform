@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { isAdminRole } from '@/lib/permissions';
-import type { UserRole, VerificationStatus } from '@/types/database';
+import { getUserRole } from '@/lib/supabase/get-user-role';
+import type { VerificationStatus } from '@/types/database';
 
 export async function POST(
   request: NextRequest,
@@ -17,7 +18,7 @@ export async function POST(
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    const userRole = (user.user_metadata?.role as UserRole) || 'customer';
+    const userRole = await getUserRole(supabase, user);
     if (!isAdminRole(userRole)) {
       return NextResponse.json({ error: 'Admin privilege required' }, { status: 403 });
     }
@@ -59,10 +60,9 @@ export async function POST(
       notification_type: 'rider_verification_updated',
     });
 
-    return NextResponse.json({ success: true, verification_status: newStatus });
+    return NextResponse.json({ success: true, rider: updated });
   } catch (err) {
-    console.error('Rider approval error:', err);
-    return NextResponse.json({ error: 'Internal server error processing rider approval' }, { status: 500 });
+    console.error('Approve rider error:', err);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
-
