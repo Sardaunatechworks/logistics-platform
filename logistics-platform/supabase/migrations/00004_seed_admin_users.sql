@@ -187,3 +187,4 @@ BEGIN
     updated_at = now();
 
 END $$;
+
